@@ -28,6 +28,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
 def fetch_playlist_tracks(playlist_id):
     """
     Devuelve todas las canciones de una playlist en una lista de diccionarios
+    con popularidad real, duración en minutos y campo 'Explícita' claro.
     """
     results = sp.playlist_items(playlist_id, additional_types=["track"])
     tracks = results["items"]
@@ -37,29 +38,41 @@ def fetch_playlist_tracks(playlist_id):
         results = sp.next(results)
         tracks.extend(results['items'])
 
+    # --- Paso 1: obtener IDs válidos de las canciones ---
+    track_ids = [item["track"]["id"] for item in tracks if item.get("track") and item["track"].get("id")]
+
+    # --- Paso 2: recuperar información detallada (popularidad real) ---
+    popularity_dict = {}
+    for i in range(0, len(track_ids), 50):  # Spotify permite máx. 50 IDs por lote
+        batch = sp.tracks(track_ids[i:i+50])
+        for t in batch["tracks"]:
+            popularity_dict[t["id"]] = t.get("popularity", 0)
+
+    # --- Paso 3: construir la lista final de canciones ---
     all_tracks = []
     for item in tracks:
-        # Dependiendo del endpoint/parámetros en la API de Spotify,
-        # la canción puede estar bajo la clave "track" o "item"
         track = item.get("track") or item.get("item")
-        
+
         if track and track.get("id"):  # Aseguramos que haya un track válido y que no sea un archivo local sin ID
             all_tracks.append({
                 "track_name": track.get("name", "Desconocido"),
                 "artist": ", ".join([artist["name"] for artist in track.get("artists", [])]) if track.get("artists") else "Desconocido",
                 "album": track["album"]["name"] if track.get("album") else "Desconocido",
-                "release_date": track["album"]["release_date"] if track.get("album") and "release_date" in track["album"] else "Desconocido",
-                "popularity": track.get("popularity", 0),
-                "duration_ms": track.get("duration_ms", 0),
-                "track_url": track["external_urls"]["spotify"] if track.get("external_urls") and "spotify" in track["external_urls"] else ""
-            })
+                "release_date": track["album"].get("release_date", "Desconocido") if track.get("album") else "Desconocido",
+                # ⚙️ Nueva: carátula del álbum
+                "album_cover": track["album"]["images"][0]["url"] if track.get("album") and track["album"].get("images") else "",
+                "duration_min": round(track.get("duration_ms", 0) / 60000, 2),
+                "Explícita": "Sí" if track.get("explicit") else "No",
+                "track_url": track["external_urls"].get("spotify", "") if track.get("external_urls") else ""
+    })
     return all_tracks
+
 
 # =====================
 # 3. DESCARGAR PLAYLIST
 # =====================
 # Cambia esto por la URL o ID de tu playlist
-playlist_id = "https://open.spotify.com/playlist/2sRr4MvsBcXAWdjFlYWDbV?si=7784e35e62e24d68"
+playlist_id ="https://open.spotify.com/playlist/2sRr4MvsBcXAWdjFlYWDbV?si=3753c3a990874171"
 
 tracks_data = fetch_playlist_tracks(playlist_id)
 

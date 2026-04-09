@@ -1,6 +1,6 @@
 # 🎧Spotify Playlist Dashboard
 
-Dashboard interactivo para analizar y visualizar las métricas de una playlist de Spotify. El proyecto permite explorar desde la cronología de lanzamientos hasta detalles de duración y contenido de la biblioteca musical de forma visual y elegante.
+Dashboard interactivo para analizar y visualizar las métricas de una playlist de Spotify.
 
 ## 🚀 Características
 - **Métricas Clave (KPIs):** Conteo total de canciones, artistas únicos, álbumes y duración media.
